@@ -1,7 +1,7 @@
-declare class FetchManager {
-    private fetchTable;
+declare class CachedTaskManager {
+    private taskTable;
     constructor();
-    withTask<T>(id: string, resolver: () => Promise<T>): Promise<unknown>;
+    withTask<T>(id: string, resolver: () => Promise<T>): Promise<T>;
     private openTask;
 }
-export default FetchManager;
+export default CachedTaskManager;

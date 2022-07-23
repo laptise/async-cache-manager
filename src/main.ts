@@ -10,8 +10,8 @@ class ExceptionOnTask<T> {
   constructor(public e: T) {}
 }
 
-class FetchManager {
-  private fetchTable: { [key: string]: CachedTaskSet<any> } = {};
+class CachedTaskManager {
+  private taskTable: { [key: string]: CachedTaskSet<any> } = {};
   constructor() {}
   public async withTask<T>(id: string, resolver: () => Promise<T>) {
     const res = await this.openTask<T>(id)
@@ -22,22 +22,22 @@ class FetchManager {
       )
       .catch((y: AlreadyOpenedTaskException<T>) => {
         if (y instanceof AlreadyOpenedTaskException) {
-          return y.child.waitForResolve();
+          return y.child.waitForResolve<T>();
         } else throw y;
       });
-    return await res;
+    return res;
   }
 
   private async openTask<T>(id: string) {
-    const existingTask = this.fetchTable[id];
+    const existingTask = this.taskTable[id];
     if (existingTask == undefined) {
-      this.fetchTable[id] = new CachedTaskSet(id);
-      const newParent = new ParentCachedTask<T>(id, this.fetchTable[id]);
-      this.fetchTable[id].parent = newParent;
-      newParent.list = this.fetchTable[id];
+      this.taskTable[id] = new CachedTaskSet(id);
+      const newParent = new ParentCachedTask<T>(id, this.taskTable[id]);
+      this.taskTable[id].parent = newParent;
+      newParent.list = this.taskTable[id];
       return newParent;
     } else {
-      const newChild = new ChildCachedTask<T>(id, this.fetchTable[id]);
+      const newChild = new ChildCachedTask<T>(id, this.taskTable[id]);
       existingTask.addTask(newChild);
       throw new AlreadyOpenedTaskException(newChild);
     }
@@ -84,7 +84,7 @@ class CachedTask<T> {
 class ParentCachedTask<T> extends CachedTask<T> {
   private result!: T;
   private reject!: ExceptionOnTask<T>;
-  public async close(resOrErr: T | ExceptionOnTask<T>) {
+  public async close(resOrErr: T | ExceptionOnTask<T>): Promise<T> {
     try {
       if (resOrErr instanceof ExceptionOnTask) {
         throw resOrErr;
@@ -98,6 +98,8 @@ class ParentCachedTask<T> extends CachedTask<T> {
         this.reject = deepCopy(e);
         setTimeout(() => (this.list.reject = deepCopy(e)), 0);
         throw this.reject;
+      } else {
+        throw e;
       }
     }
   }
@@ -105,7 +107,7 @@ class ParentCachedTask<T> extends CachedTask<T> {
 
 class ChildCachedTask<T> extends CachedTask<T> {
   private resultPromise: Promise<T>;
-  public async waitForResolve() {
+  public async waitForResolve<T>() {
     if (this.list.isRejected) {
       this.taskRejector(this.list.reject);
     } else if (this.list.isResolved) {
@@ -114,7 +116,7 @@ class ChildCachedTask<T> extends CachedTask<T> {
     const res = await this.resultPromise;
     if (res instanceof ExceptionOnTask) {
       throw res;
-    } else return deepCopy(res);
+    } else return deepCopy<T>(res);
   }
   public taskResolver!: (res: T) => void;
   public taskRejector!: (res: ExceptionOnTask<T>) => void;
@@ -127,4 +129,4 @@ class ChildCachedTask<T> extends CachedTask<T> {
   }
 }
 
-export default FetchManager;
+export default CachedTaskManager;
