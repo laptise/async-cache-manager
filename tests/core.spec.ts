@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import TaskManager from "../dist/main";
 import { returnThisWithTimeOut, throwThisWithTimeOut } from "./testTools";
 

@@ -2,6 +2,37 @@ function deepCopy<T>(obj: any) {
   return JSON.parse(JSON.stringify(obj)) as T;
 }
 
+type StorageType = "memory" | "session" | "idb" | "local";
+abstract class CachedTaskStore {
+  constructor(private memType: StorageType) {}
+}
+
+class inMemoryStore extends CachedTaskStore {
+  constructor() {
+    super("memory");
+  }
+}
+class inSessionStore extends CachedTaskStore {
+  constructor() {
+    super("session");
+  }
+}
+class inIndexedDbStore extends CachedTaskStore {
+  constructor(private expires: number) {
+    super("idb");
+  }
+}
+
+export namespace CachedTaskStoreTypes {
+  export const inMemory = new inMemoryStore();
+  // export const inSession = new inSessionStore();
+  // export const inIndexedDb_expiresIn = (expires: number) => new inIndexedDbStore(expires);
+}
+
+type CachedTaskManagerInitOptions = {
+  storage: CachedTaskStore;
+};
+
 class AlreadyOpenedTaskException<T> {
   constructor(public child: ChildCachedTask<T>) {}
 }
@@ -10,9 +41,18 @@ class ExceptionOnTask<T> {
   constructor(public e: T) {}
 }
 
+/**Cached Task Manager.
+ * Provides caching promise result.
+ */
 class CachedTaskManager {
   private taskTable: { [key: string]: CachedTaskSet<any> } = {};
-  constructor() {}
+  /**Make new instance of Cached task manager. */
+  constructor(private option: CachedTaskManagerInitOptions = { storage: CachedTaskStoreTypes.inMemory }) {
+    if (option.storage instanceof inMemoryStore) {
+    } else if (option.storage instanceof inIndexedDbStore) {
+      if (typeof indexedDB === "undefined") throw "no idb";
+    }
+  }
   public async withTask<T>(id: string, resolver: () => Promise<T>) {
     const res = await this.openTask<T>(id)
       .then((task) =>

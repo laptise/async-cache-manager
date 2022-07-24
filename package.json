@@ -1,26 +1,33 @@
 {
-  "name": "cached-promise",
-  "version": "0.0.1",
+  "name": "async-cache-manager",
+  "version": "1.0.0",
   "description": "Cache the promise result.",
   "main": "dist/main.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "webpack",
+    "prepublishOnly": "webpack && jest",
     "dev": "webpack -w",
     "test": "webpack && jest"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/laptise/cached-promise.git"
+    "url": "git+https://github.com/laptise/async-cache-manager.git"
   },
   "author": "laptise@live.jp",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/laptise/cached-promise/issues"
+    "url": "https://github.com/laptise/async-cache-manager/issues"
   },
-  "homepage": "https://github.com/laptise/cached-promise#readme",
+  "homepage": "https://github.com/laptise/async-cache-manager#readme",
   "devDependencies": {
+    "@playwright/test": "^1.24.0",
     "@types/jest": "^28.1.6",
+    "fake-indexeddb": "^4.0.0",
     "jest": "^28.1.3",
+    "playwright": "^1.24.0",
     "ts-jest": "^28.0.7",
     "ts-loader": "^9.3.1",
     "typescript": "^4.7.4",
