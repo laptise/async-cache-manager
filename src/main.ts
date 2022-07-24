@@ -3,34 +3,36 @@ function deepCopy<T>(obj: any) {
 }
 
 type StorageType = "memory" | "session" | "idb" | "local";
-abstract class CachedTaskStore {
+abstract class AsyncCacheStore {
   constructor(private memType: StorageType) {}
 }
 
-class inMemoryStore extends CachedTaskStore {
+class inMemoryStore extends AsyncCacheStore {
   constructor() {
     super("memory");
   }
 }
-class inSessionStore extends CachedTaskStore {
+
+class inSessionStore extends AsyncCacheStore {
   constructor() {
     super("session");
   }
 }
-class inIndexedDbStore extends CachedTaskStore {
+
+class inIndexedDbStore extends AsyncCacheStore {
   constructor(private expires: number) {
     super("idb");
   }
 }
 
-export namespace CachedTaskStoreTypes {
+export namespace AsyncCacheStoreTypes {
   export const inMemory = new inMemoryStore();
   // export const inSession = new inSessionStore();
   // export const inIndexedDb_expiresIn = (expires: number) => new inIndexedDbStore(expires);
 }
 
-type CachedTaskManagerInitOptions = {
-  storage: CachedTaskStore;
+type AsyncCacheManagerInitOptions = {
+  storage: AsyncCacheStore;
 };
 
 class AlreadyOpenedTaskException<T> {
@@ -41,22 +43,23 @@ class ExceptionOnTask<T> {
   constructor(public e: T) {}
 }
 
-/**Cached Task Manager.
+/**Async Cache Manager.
  * Provides caching promise result.
  */
-class CachedTaskManager {
+class AsyncCacheManager {
   private taskTable: { [key: string]: CachedTaskSet<any> } = {};
-  /**Make new instance of Cached task manager. */
-  constructor(private option: CachedTaskManagerInitOptions = { storage: CachedTaskStoreTypes.inMemory }) {
+  /**Make new instance of Async Cache Manager. */
+  constructor(private option: AsyncCacheManagerInitOptions = { storage: AsyncCacheStoreTypes.inMemory }) {
     if (option.storage instanceof inMemoryStore) {
     } else if (option.storage instanceof inIndexedDbStore) {
       if (typeof indexedDB === "undefined") throw "no idb";
     }
   }
-  public async withTask<T>(id: string, resolver: () => Promise<T>) {
+  /**Register new async task with ID. This will be executed immediatly. */
+  public async newTask<T>(id: string, asyncFn: () => Promise<T>) {
     const res = await this.openTask<T>(id)
       .then((task) =>
-        resolver()
+        asyncFn()
           .catch((e) => new ExceptionOnTask(e))
           .then((res) => task.close(res))
       )
@@ -117,10 +120,11 @@ class CachedTaskSet<T> {
   }
 }
 
-class CachedTask<T> {
+abstract class CachedTask<T> {
   constructor(public id: string, public list: CachedTaskSet<T>) {}
 }
 
+/**Parent of Task group. Children tasks waits result of this parent. */
 class ParentCachedTask<T> extends CachedTask<T> {
   private result!: T;
   private reject!: ExceptionOnTask<T>;
@@ -169,4 +173,4 @@ class ChildCachedTask<T> extends CachedTask<T> {
   }
 }
 
-export default CachedTaskManager;
+export default AsyncCacheManager;

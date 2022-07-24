@@ -1,4 +1,4 @@
-# Cached Promise (日本語)
+# Async Cache Manager (日本語)
 
 非同期処理の結果を簡単に最利用できるようにするライブラリ。
 
@@ -7,7 +7,7 @@
 指定した`文字列のID`でタスクを生成し、同じ ID を持つタスク同士で同じ結果を利用します。
 
 ```
-npm install cached-promise
+npm install async-cache-manager
 ```
 
 ※ ディープクローンが内部で実施されているので、参照を共有するわけではありません。
@@ -17,14 +17,14 @@ npm install cached-promise
 以下では同じ HTTP リクエストを４回実行する例で説明をしていきます。
 
 ```ts
-import CachedPromise from "cached-promise";
-const store = new CachedPromise(); //①
+import AsyncCacheManager from "async-cache-manager";
+const manager = new AsyncCacheManager(); //①
 
 //②
-store.withTask("simple id", () => fetch("very-heavy-api"));
-store.withTask("simple id", () => fetch("very-heavy-api"));
-store.withTask("another id", () => fetch("very-heavy-api")); //③
-store.withTask("simple id", () => fetch("very-heavy-api"));
+manager.newTask("simple id", () => fetch("very-heavy-api"));
+manager.newTask("simple id", () => fetch("very-heavy-api"));
+manager.newTask("another id", () => fetch("very-heavy-api")); //③
+manager.newTask("simple id", () => fetch("very-heavy-api"));
 ```
 
 ### ① マネージャー（仮称）のインスタンス化
@@ -35,7 +35,7 @@ store.withTask("simple id", () => fetch("very-heavy-api"));
 
 ### ② タスクの実行
 
-`withTask`メソッドを利用し非同期実行を登録します。
+`newTask`メソッドを利用し非同期実行を登録します。
 
 第１引数は、タスクの識別`id`です。第２引数には`Promise`ではなく、`Promise`を返すコールバックを入れていることに注意してください。
 これは、マネージャーがその処理を実行するかどうかを判断してから、実行できるようにする為です。
